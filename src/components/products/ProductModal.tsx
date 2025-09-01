@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Product } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductModalProps {
   product: Product | null;
@@ -13,13 +14,23 @@ interface ProductModalProps {
 }
 
 export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
-  const { addToCart } = useApp();
+  const { addToCart, user } = useApp();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
 
   if (!isOpen || !product) return null;
 
   const handleAddToCart = () => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "Please log in to continue shopping.",
+      });
+      navigate('/login');
+      onClose();
+      return;
+    }
     addToCart(product, quantity);
     toast({
       title: "Added to cart",
@@ -132,7 +143,7 @@ export function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
               variant="hero"
             >
               <ShoppingCart className="w-5 h-5 mr-2" />
-              {product.stock === 0 ? 'Out of Stock' : `Add ${quantity} to Cart - $${(product.price * quantity).toFixed(2)}`}
+              {product.stock === 0 ? 'Out of Stock' : `Add ${quantity} to Cart - ${(product.price * quantity).toFixed(2)}`}
             </Button>
 
             {/* Features */}

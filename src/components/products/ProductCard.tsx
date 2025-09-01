@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Product } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductCardProps {
   product: Product;
@@ -13,11 +14,20 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onViewDetails }: ProductCardProps) {
-  const { addToCart } = useApp();
+  const { addToCart, user } = useApp();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   const handleAddToCart = () => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "Please log in to continue shopping.",
+      });
+      navigate('/login');
+      return;
+    }
     addToCart(product);
     toast({
       title: "Added to cart",

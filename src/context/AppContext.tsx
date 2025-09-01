@@ -13,9 +13,15 @@ interface AppContextType extends AppState {
   logout: () => void;
   updateUserProfile: (updates: Partial<User>) => void;
   placeOrder: (customerInfo: any) => string;
+  addProduct: (product: Omit<Product, 'id'>) => void;
+  updateProduct: (id: string, updates: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
+  addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (id: string, updates: Partial<Category>) => void;
+  deleteCategory: (id: string) => void;
 }
 
-type AppAction = 
+type AppAction =
   | { type: 'ADD_TO_CART'; payload: { product: Product; quantity: number } }
   | { type: 'REMOVE_FROM_CART'; payload: string }
   | { type: 'UPDATE_CART_QUANTITY'; payload: { productId: string; quantity: number } }
@@ -27,7 +33,13 @@ type AppAction =
   | { type: 'PLACE_ORDER'; payload: Order }
   | { type: 'LOAD_STATE'; payload: AppState }
   | { type: 'SET_PRODUCTS'; payload: Product[] }
-  | { type: 'SET_CATEGORIES'; payload: Category[] };
+  | { type: 'ADD_PRODUCT'; payload: Product }
+  | { type: 'UPDATE_PRODUCT'; payload: { id: string; updates: Partial<Product> } }
+  | { type: 'DELETE_PRODUCT'; payload: string }
+  | { type: 'SET_CATEGORIES'; payload: Category[] }
+  | { type: 'ADD_CATEGORY'; payload: Category }
+  | { type: 'UPDATE_CATEGORY'; payload: { id: string; updates: Partial<Category> } }
+  | { type: 'DELETE_CATEGORY'; payload: string };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -103,10 +115,40 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         products: action.payload
       };
+    case 'ADD_PRODUCT':
+      return {
+        ...state,
+        products: [...state.products, action.payload]
+      };
+    case 'UPDATE_PRODUCT':
+      return {
+        ...state,
+        products: state.products.map(p => p.id === action.payload.id ? { ...p, ...action.payload.updates } : p)
+      };
+    case 'DELETE_PRODUCT':
+      return {
+        ...state,
+        products: state.products.filter(p => p.id !== action.payload)
+      };
     case 'SET_CATEGORIES':
       return {
         ...state,
         categories: action.payload
+      };
+    case 'ADD_CATEGORY':
+      return {
+        ...state,
+        categories: [...state.categories, action.payload]
+      };
+    case 'UPDATE_CATEGORY':
+      return {
+        ...state,
+        categories: state.categories.map(c => c.id === action.payload.id ? { ...c, ...action.payload.updates } : c)
+      };
+    case 'DELETE_CATEGORY':
+      return {
+        ...state,
+        categories: state.categories.filter(c => c.id !== action.payload)
       };
     default:
       return state;
@@ -237,6 +279,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return orderId;
   };
 
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    const { data, error } = await supabase.from('products').insert([product]).select();
+    if (data) {
+      dispatch({ type: 'ADD_PRODUCT', payload: data[0] });
+    }
+  };
+
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    const { data, error } = await supabase.from('products').update(updates).eq('id', id).select();
+    if (data) {
+      dispatch({ type: 'UPDATE_PRODUCT', payload: { id, updates: data[0] } });
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) {
+      dispatch({ type: 'DELETE_PRODUCT', payload: id });
+    }
+  };
+
+  const addCategory = async (category: Omit<Category, 'id'>) => {
+    const { data, error } = await supabase.from('categories').insert([category]).select();
+    if (data) {
+      dispatch({ type: 'ADD_CATEGORY', payload: data[0] });
+    }
+  };
+
+  const updateCategory = async (id: string, updates: Partial<Category>) => {
+    const { data, error } = await supabase.from('categories').update(updates).eq('id', id).select();
+    if (data) {
+      dispatch({ type: 'UPDATE_CATEGORY', payload: { id, updates: data[0] } });
+    }
+  };
+
+  const deleteCategory = async (id: string) => {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (!error) {
+      dispatch({ type: 'DELETE_CATEGORY', payload: id });
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       ...state,
@@ -248,7 +332,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
       updateUserProfile,
-      placeOrder
+      placeOrder,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      addCategory,
+      updateCategory,
+      deleteCategory
     }}>
       {children}
     </AppContext.Provider>
